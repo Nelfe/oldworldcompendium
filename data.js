@@ -1,0 +1,622 @@
+/* Données de règles — aide-mémoire en français pour Warhammer: The Old World.
+   Résumés rédigés librement (pas de texte officiel reproduit). Le texte exact fait foi :
+   chaque fiche renvoie vers la page officielle (https://tow.whfb.app). */
+(function () {
+  const BASE = "https://tow.whfb.app/";
+
+  const CATS = {
+    concept: "Concepts & tests",
+    psycho: "Psychologie",
+    special: "Règles spéciales",
+    troop: "Types de troupes & équipement",
+    magic: "Magie",
+    command: "Commandement",
+  };
+
+  /* uses : rappels contextuels pour l'onglet « Phases ».
+     p = phase (strategy|movement|shooting|combat), s = côté (me = mon tour, opp = tour adverse, both),
+     n = note affichée quand une unité de la liste possède cette règle. */
+  const G = [
+    /* ---------- Concepts & tests ---------- */
+    {
+      id: "leadership-test", fr: "Test de Commandement", en: "Leadership test", cat: "concept",
+      aliases: ["test de Ld", "Commandement"],
+      path: "model-profiles/leadership-tests",
+      txt: "Lancez 2D6 : le test est réussi si le résultat est inférieur ou égal au Commandement (Ld) de l'unité. Si l'unité contient plusieurs valeurs de Ld, on prend la plus haute.",
+    },
+    {
+      id: "panic", fr: "Test de Panique", en: "Panic test", cat: "concept",
+      aliases: ["Panique"],
+      path: "the-psychology-of-war/panic-tests",
+      txt: "Test de Commandement déclenché par certaines situations : pertes lourdes (surtout au tir/magie), unité amie proche détruite, unité amie proche qui fuit un combat, ou unité traversée par des fuyards. Les règles spéciales, sorts et objets peuvent en provoquer d'autres.",
+      uses: [{ p: "shooting", s: "opp", n: "Après avoir retiré les pertes, test de Panique si une cause s'applique." }],
+    },
+    {
+      id: "break-test", fr: "Test de Rupture", en: "Break test", cat: "concept",
+      aliases: ["Rupture", "Breaks"],
+      path: "the-combat-phase/break-test",
+      txt: "Chaque unité du camp perdant fait un test : 2D6 + différence entre les scores de résultat de combat (vainqueur − perdant). Dé naturel > Ld : l'unité rompt et fuit. Dé naturel ≤ Ld mais résultat modifié > Ld : Retraite en bon ordre. Résultat modifié ≤ Ld, ou double 1 naturel : Cède du terrain.",
+      uses: [{ p: "combat", s: "both", n: "Test de Rupture si votre camp perd le combat." }],
+    },
+    {
+      id: "combat-result", fr: "Résultat de combat", en: "Combat result", cat: "concept",
+      aliases: ["score de résultat de combat", "points de résultat"],
+      path: "the-combat-phase/combat-result-score",
+      txt: "Chaque camp totalise des points : 1 par blessure non sauvegardée infligée, +1 par rang (bonus de rang), +1 étendard, +1 étendard de bataille, +1 attaque de flanc, +2 attaque d'arrière, +1 hauteur, +1 par blessure excédentaire (Overkill), +1 Infanterie massée si Force d'unité supérieure, plus autres bonus. Le plus haut score gagne.",
+    },
+    {
+      id: "rank-bonus", fr: "Bonus de rang", en: "Rank Bonus", cat: "concept",
+      aliases: ["rangs"],
+      path: "the-combat-phase/rank-bonus",
+      txt: "+1 point de résultat de combat par rang, jusqu'à un plafond fixé par le type de troupe (Horde le relève de 1). Voir la fiche pour les conditions d'un rang complet.",
+    },
+    {
+      id: "fall-back", fr: "Retraite en bon ordre", en: "Fall Back in Good Order", cat: "concept",
+      aliases: ["Falls Back in Good Order", "Falling Back in Good Order"],
+      path: "movement-in-detail/fall-back-in-good-order",
+      txt: "Issue intermédiaire du test de Rupture : l'unité recule sans s'enfuir. Détails du mouvement et des cas particuliers sur la fiche officielle.",
+    },
+    {
+      id: "give-ground", fr: "Céder du terrain", en: "Give Ground", cat: "concept",
+      aliases: ["Gives Ground", "Gave Ground"],
+      path: "movement-in-detail/give-ground",
+      txt: "Issue la moins grave du test de Rupture : l'unité est repoussée par l'ennemi mais reste en ordre.",
+    },
+    {
+      id: "flee", fr: "Fuite", en: "Flee", cat: "concept",
+      aliases: ["fuir", "fuyard", "fleeing"],
+      path: "movement-in-detail/flee",
+      txt: "Mouvement de fuite : l'unité s'éloigne de l'ennemi. Les unités en fuite ne chargent pas, ne tirent pas, et font un test de ralliement au début de leur tour. Voir la fiche pour la direction, la distance et le passage à travers unités/terrain.",
+      uses: [{ p: "movement", s: "me", n: "Les unités en fuite effectuent leur mouvement de fuite obligatoire." }],
+    },
+    {
+      id: "rally", fr: "Ralliement", en: "Rally", cat: "concept",
+      aliases: ["rallier", "rallied", "Rally Fleeing Troops"],
+      path: "the-strategy-phase/rally-fleeing-units",
+      txt: "Phase de stratégie : chaque unité en fuite fait un test de Commandement. Réussi : elle est ralliée. Raté : elle continue de fuir. Une unité ralliée ce tour-ci ne peut pas déclarer de charge.",
+      uses: [{ p: "strategy", s: "me", n: "Testez le ralliement de vos unités en fuite." }],
+    },
+    {
+      id: "charge", fr: "Charge", en: "Charge", cat: "concept",
+      aliases: ["charger", "charges", "charging"],
+      path: "the-movement-phase/declare-charges-and-charge-reactions",
+      txt: "On déclare d'abord toutes les charges (unité + cible), puis l'adversaire déclare ses réactions, puis on exécute les mouvements de charge. Pas de charge si l'unité est engagée, en fuite ou ralliée ce tour-ci ; en Colonne de marche on peut déclarer mais pas exécuter. Une charge impossible ne peut pas être déclarée.",
+    },
+    {
+      id: "charge-reaction", fr: "Réaction de charge", en: "Charge reaction", cat: "concept",
+      aliases: ["charge reactions", "réactions de charge"],
+      path: "the-movement-phase/charge-reactions",
+      txt: "L'unité chargée choisit une réaction parmi trois : Tenir (Hold), Tirer en position (Stand & Shoot) ou Fuir (Flee).",
+      uses: [{ p: "movement", s: "opp", n: "Choisissez Tenir, Tirer en position ou Fuir pour chaque unité chargée." }],
+    },
+    {
+      id: "hold", fr: "Tenir", en: "Hold", cat: "concept",
+      path: "the-movement-phase/hold",
+      txt: "Réaction de charge : l'unité reste en place et attend l'impact.",
+    },
+    {
+      id: "stand-and-shoot", fr: "Tir en position", en: "Stand & Shoot", cat: "concept",
+      aliases: ["Stand and Shoot"],
+      path: "the-movement-phase/stand-and-shoot",
+      txt: "Réaction de charge : l'unité chargée tire sur les chargeurs avec ses armes à projectiles. Le tir subit le malus de -1 pour toucher « tir en position ». Quick Shot permet cette réaction quelle que soit la distance des chargeurs.",
+    },
+    {
+      id: "march", fr: "Marche", en: "Marching", cat: "concept",
+      aliases: ["marcher", "march move", "marched"],
+      path: "movement-in-detail/marching",
+      txt: "Mouvement rapide (jusqu'au double). Une unité qui a marché ne peut pas tirer ce tour-ci. Marcher à moins de 8 po d'un ennemi exige d'abord un test de Commandement (Drilled et Fly en sont dispensés).",
+    },
+    {
+      id: "to-hit-mods", fr: "Modificateurs pour toucher (tir)", en: "To Hit modifiers", cat: "concept",
+      aliases: ["modificateurs pour toucher"],
+      path: "the-shooting-phase/to-hit-modifiers",
+      txt: "Cumulables : -1 si l'unité a bougé et tire, -1 à longue portée, -1 en tir en position, -1 cible à couvert partiel, -2 cible à couvert total. Pour BS 6+, ces modificateurs ne s'appliquent qu'au premier jet.",
+    },
+    {
+      id: "ward-save", fr: "Sauvegarde de parade", en: "Ward save", cat: "concept",
+      aliases: ["Ward", "sauvegarde invulnérable"],
+      path: "the-shooting-phase/ward-saves",
+      txt: "Sauvegarde spéciale qui reste possible dans des cas où l'armure ne l'est pas (par exemple contre un Coup fatal).",
+    },
+    {
+      id: "challenge", fr: "Défi", en: "Challenge", cat: "concept",
+      aliases: ["défis", "challenges"],
+      path: "characters/challenges",
+      txt: "Au corps à corps, un personnage ou un champion peut lancer un défi ; l'adversaire peut accepter ou refuser (voir fiche pour les conséquences d'un refus).",
+      uses: [{ p: "combat", s: "both", n: "Défi possible avant la résolution des attaques (après les Impact Hits)." }],
+    },
+    {
+      id: "unit-strength", fr: "Force d'unité", en: "Unit Strength", cat: "concept",
+      path: "troop-types-at-a-glance/unit-strength",
+      txt: "Valeur comparative d'une unité selon ses modèles et leur type de troupe. Sert notamment pour Fear (cible de Force supérieure), Infanterie massée et certaines issues du test de Rupture.",
+    },
+    {
+      id: "dispel", fr: "Dissipation", en: "Dispel", cat: "magic",
+      aliases: ["dissiper", "dispel roll", "Wizardly dispel"],
+      path: "magic/dispel",
+      txt: "L'adversaire peut tenter d'annuler un sort lancé. Il existe plusieurs types de dissipation (de magicien, du destin…) : voir les fiches pour les jets.",
+      uses: [{ p: "strategy", s: "opp", n: "Dissipation possible des Enchantements / Hexes adverses." }],
+    },
+
+    /* ---------- Psychologie ---------- */
+    {
+      id: "fear", fr: "Peur", en: "Fear", cat: "psycho",
+      aliases: ["causes Fear", "cause la peur"],
+      path: "special-rules/fear",
+      txt: "Pour charger une unité qui cause la Peur et a une Force d'unité supérieure, il faut d'abord réussir un test de Commandement (sinon charge ratée, sans mouvement). Une unité engagée avec un tel ennemi teste aussi en début de combat : en cas d'échec, ses attaques contre lui ont -1 pour toucher. Un seul test par tour ; les modèles qui causent la Peur y sont immunisés.",
+      uses: [
+        { p: "movement", s: "me", n: "Charger une unité qui cause la Peur (Force d'unité supérieure) exige un test de Commandement." },
+        { p: "combat", s: "both", n: "Test de Commandement des ennemis engagés (-1 pour toucher en cas d'échec)." },
+      ],
+    },
+    {
+      id: "terror", fr: "Terreur", en: "Terror", cat: "psycho",
+      aliases: ["causes Terror", "cause la terreur"],
+      path: "special-rules/terror",
+      txt: "Inclut la Peur. Quand l'unité déclare une charge, la cible fait un test de Commandement et fuit en cas d'échec. Si un camp victorieux compte une unité qui cause la Terreur, chaque unité perdante a -1 en Commandement pour son test de Rupture.",
+      uses: [
+        { p: "movement", s: "me", n: "La cible de votre charge teste le Commandement et fuit si elle échoue." },
+        { p: "movement", s: "opp", n: "Si vous êtes chargé par une unité qui cause la Terreur : test de Commandement immédiat." },
+        { p: "combat", s: "both", n: "Camp victorieux avec Terreur : -1 Ld aux tests de Rupture adverses." },
+      ],
+    },
+    {
+      id: "immune-psychology", fr: "Immunisé à la psychologie", en: "Immune to Psychology", cat: "psycho",
+      aliases: ["Immune to Psychology"],
+      path: "special-rules/immune-to-psychology",
+      txt: "Si la majorité des modèles de l'unité l'ont, elle réussit automatiquement les tests de Peur, Panique et Terreur. En contrepartie, elle ne peut pas choisir Fuir en réaction de charge.",
+      uses: [{ p: "movement", s: "opp", n: "Ne peut pas Fuir en réaction de charge." }],
+    },
+    {
+      id: "frenzy", fr: "Frénésie", en: "Frenzy", cat: "psycho",
+      aliases: ["Frenzied"],
+      path: "special-rules/frenzy",
+      txt: "+1 Attaque le tour d'une charge ou le tour suivant un mouvement de suivi (hors monture/bêtes/cavalier). Si la majorité est frénétique : réussit automatiquement Peur/Panique/Terreur, ne peut pas Fuir en réaction ni tester la retenue. L'unité doit charger si elle le peut. La Frénésie est perdue dès qu'un modèle perd un round de combat.",
+      uses: [
+        { p: "movement", s: "me", n: "Doit déclarer une charge si possible." },
+        { p: "movement", s: "opp", n: "Ne peut pas Fuir en réaction de charge (si majorité frénétique)." },
+      ],
+    },
+    {
+      id: "impetuous", fr: "Impétueux", en: "Impetuous", cat: "psycho",
+      path: "special-rules/impetuous",
+      txt: "Si l'unité peut déclarer une charge, elle fait un test de Commandement : en cas d'échec, elle doit charger. Si le test est réussi, elle agit normalement.",
+      uses: [{ p: "movement", s: "me", n: "Test de Commandement avant de déclarer : échec = charge obligatoire." }],
+    },
+    {
+      id: "hatred", fr: "Haine", en: "Hatred (X)", cat: "psycho",
+      aliases: ["Hatred", "hated enemy"],
+      path: "special-rules/hatred",
+      txt: "Relance des jets pour toucher ratés contre l'ennemi haï, lors du premier round de combat. La cible haïe est précisée entre parenthèses (ou « tous les ennemis »).",
+      uses: [{ p: "combat", s: "both", n: "Relance des jets pour toucher ratés au 1er round de combat." }],
+    },
+    {
+      id: "stubborn", fr: "Tenace", en: "Stubborn", cat: "psycho",
+      path: "special-rules/stubborn",
+      txt: "La première fois que l'unité doit faire un test de Rupture, elle peut refuser et réussir automatiquement une Retraite en bon ordre, même si le vainqueur a plus du double de sa Force d'unité. Un personnage Tenace ne peut pas s'en servir dans une unité qui ne l'est pas.",
+      uses: [{ p: "combat", s: "both", n: "Une fois : évite le test de Rupture (Retraite en bon ordre automatique)." }],
+    },
+    {
+      id: "unbreakable", fr: "Inébranlable", en: "Unbreakable", cat: "psycho",
+      aliases: [],
+      path: "special-rules/unbreakable",
+      txt: "L'unité qui perd un round de combat ne fait pas de test de Rupture : elle Cède automatiquement du terrain. Un personnage non Inébranlable ne peut pas rejoindre ces unités, et inversement.",
+      uses: [{ p: "combat", s: "both", n: "Si vous perdez : Cède du terrain automatiquement (pas de test)." }],
+    },
+    {
+      id: "stupidity", fr: "Stupidité", en: "Stupidity", cat: "psycho",
+      path: "special-rules/stupidity",
+      txt: "Début de tour (sauf unité en fuite ou engagée) : test de Commandement. Échec : jusqu'au prochain début de tour, l'unité ne peut pas bouger (sauf fuir), tirer, lancer de sorts ni tenter de dissipation de magicien, et doit Tenir si elle est chargée. Contagieuse via personnage/monture.",
+      uses: [
+        { p: "strategy", s: "me", n: "Début de tour : test de Stupidité (hors fuite/combat)." },
+        { p: "movement", s: "opp", n: "Si l'unité a succombé à la Stupidité : elle doit Tenir quand elle est chargée." },
+      ],
+    },
+
+    /* ---------- Règles spéciales ---------- */
+    {
+      id: "skirmishers", fr: "Tirailleurs", en: "Skirmishers", cat: "special",
+      aliases: ["Skirmish", "Skirmish formation"],
+      path: "special-rules/skirmishers",
+      txt: "L'unité peut adopter la formation en Escarmouche (Skirmish) : voir les règles de formations inhabituelles pour la cohérence, le tir, le combat et les charges.",
+      uses: [{ p: "movement", s: "me", n: "Peut adopter / quitter la formation Skirmish (voir fiche)." }],
+    },
+    {
+      id: "fast-cavalry", fr: "Cavalerie rapide", en: "Fast Cavalry", cat: "special",
+      path: "special-rules/fast-cavalry",
+      txt: "Si tous les modèles d'une unité en ordre dispersé l'ont, l'unité peut faire son Demi-tour rapide (Quick Turn) même après avoir marché.",
+      uses: [{ p: "movement", s: "me", n: "Quick Turn autorisé même après une marche (ordre dispersé)." }],
+    },
+    {
+      id: "fly", fr: "Vol", en: "Fly (X)", cat: "special",
+      aliases: ["Fly", "Flying", "vole"],
+      path: "special-rules/fly",
+      txt: "Sauf pour suivre/poursuivre, le modèle peut se déplacer en volant (valeur entre parenthèses) : passe au-dessus des unités et du terrain, peut marcher à moins de 8 po d'un ennemi sans test. Doit commencer et finir son mouvement au sol ; pas de fin de mouvement sur un terrain impassable, une autre unité, ou à 1 po d'un ennemi.",
+      uses: [{ p: "movement", s: "me", n: "Option de mouvement en vol (valeur de Vol)." }],
+    },
+    {
+      id: "killing-blow", fr: "Coup fatal", en: "Killing Blow", cat: "special",
+      path: "special-rules/killing-blow",
+      txt: "Un 6 naturel pour blesser au corps à corps : Infanterie et Cavalerie ennemies n'ont droit ni à l'armure ni à la Régénération (la parade reste possible) et perdent toutes leurs Blessures restantes. Inutilisable si l'attaque blesse automatiquement.",
+      uses: [{ p: "combat", s: "both", n: "6 naturel pour blesser = Coup fatal (contre Infanterie/Cavalerie)." }],
+    },
+    {
+      id: "poisoned", fr: "Attaques empoisonnées", en: "Poisoned Attacks", cat: "special",
+      aliases: ["Poisoned"],
+      path: "special-rules/poisoned-attacks",
+      txt: "Un 6 naturel pour toucher donne +2 au jet pour blesser (tir comme corps à corps). Ne s'applique pas aux sorts, armes magiques, ni aux attaques qui touchent automatiquement ou nécessitent 7+.",
+      uses: [
+        { p: "shooting", s: "me", n: "6 naturel pour toucher : +2 pour blesser." },
+        { p: "combat", s: "both", n: "6 naturel pour toucher : +2 pour blesser." },
+      ],
+    },
+    {
+      id: "quick-shot", fr: "Tir rapide", en: "Quick Shot", cat: "special",
+      path: "special-rules/quick-shot",
+      txt: "L'arme ignore le malus de -1 pour avoir bougé, et l'unité peut faire un Tir en position même si les chargeurs sont très proches.",
+      uses: [
+        { p: "shooting", s: "me", n: "Pas de malus -1 pour avoir bougé." },
+        { p: "movement", s: "opp", n: "Tir en position possible quelle que soit la distance des chargeurs." },
+      ],
+    },
+    {
+      id: "move-or-shoot", fr: "Bouger ou tirer", en: "Move or Shoot", cat: "special",
+      path: "special-rules/move-or-shoot",
+      txt: "L'arme ne peut pas tirer si le porteur a bougé pour une raison quelconque ce tour-ci (ralliement et reformation compris).",
+      uses: [{ p: "shooting", s: "me", n: "Ne peut pas tirer si l'unité a bougé (même ralliée ou reformée)." }],
+    },
+    {
+      id: "strike-first", fr: "Frappe en premier", en: "Strike First", cat: "special",
+      path: "special-rules/strike-first",
+      txt: "Au corps à corps, l'Initiative passe à 10 (avant autres modificateurs). Annulée par Strike Last.",
+      uses: [{ p: "combat", s: "both", n: "Initiative = 10 (frappe en tout premier)." }],
+    },
+    {
+      id: "strike-last", fr: "Frappe en dernier", en: "Strike Last", cat: "special",
+      path: "special-rules/strike-last",
+      txt: "Au corps à corps, l'Initiative passe à 1 (avant autres modificateurs). Annulée par Strike First.",
+      uses: [{ p: "combat", s: "both", n: "Initiative = 1 (frappe en dernier)." }],
+    },
+    {
+      id: "regeneration", fr: "Régénération", en: "Regeneration (X+)", cat: "special",
+      aliases: ["Regeneration"],
+      path: "special-rules/regeneration",
+      txt: "Juste après la perte d'une Blessure (avant retrait des modèles à 0 Blessure), jet de D6 : si le résultat atteint la valeur de Régénération, la Blessure est récupérée, mais elle compte quand même pour le résultat de combat.",
+      uses: [
+        { p: "shooting", s: "opp", n: "Jet de Régénération pour chaque Blessure perdue." },
+        { p: "combat", s: "both", n: "Jet de Régénération pour chaque Blessure perdue (compte quand même au résultat)." },
+      ],
+    },
+    {
+      id: "large-target", fr: "Grande cible", en: "Large Target", cat: "special",
+      path: "special-rules/large-target",
+      txt: "Pas de couvert partiel ni total ; ligne de vue possible par-dessus/à travers d'autres unités (sauf autres Grandes cibles) ; l'unité qui lui tire dessus peut tirer avec un rang supplémentaire.",
+      uses: [{ p: "shooting", s: "both", n: "Ignorez le couvert ; un rang supplémentaire peut tirer sur elle." }],
+    },
+    {
+      id: "multiple-wounds", fr: "Blessures multiples", en: "Multiple Wounds (X)", cat: "special",
+      aliases: ["Multiple Wounds"],
+      path: "special-rules/multiple-wounds",
+      txt: "Chaque blessure non sauvegardée est multipliée par X (si X est aléatoire, lancez pour chaque blessure). Les excédents ne se reportent pas sur d'autres modèles ; ils comptent pour l'Overkill d'un personnage.",
+      uses: [
+        { p: "shooting", s: "me", n: "Chaque blessure non sauvegardée est multipliée." },
+        { p: "combat", s: "both", n: "Chaque blessure non sauvegardée est multipliée." },
+      ],
+    },
+    {
+      id: "impact-hits", fr: "Touches d'impact", en: "Impact Hits (X)", cat: "special",
+      aliases: ["Impact Hits"],
+      path: "special-rules/impact-hits",
+      txt: "Uniquement pour un modèle chargeur qui a bougé d'au moins 3 po et est au contact. Résolues au début du combat (étape 1.1), avant les défis : touchent automatiquement, avec la Force non modifiée du modèle.",
+      uses: [{ p: "combat", s: "me", n: "Résolvez les Touches d'impact en début de combat (si charge ≥ 3 po)." }],
+    },
+    {
+      id: "stomp-attacks", fr: "Piétinements", en: "Stomp Attacks (X)", cat: "special",
+      aliases: ["Stomp Attacks", "Stomp"],
+      path: "special-rules/stomp-attacks",
+      txt: "Attaques automatiques au corps à corps, résolues en tout dernier (après même l'Initiative 1), avec la Force non modifiée. Le nombre est entre parenthèses (souvent aléatoire).",
+      uses: [{ p: "combat", s: "both", n: "Piétinements à résoudre en dernier (après l'Initiative 1)." }],
+    },
+    {
+      id: "furious-charge", fr: "Charge furieuse", en: "Furious Charge", cat: "special",
+      path: "special-rules/furious-charge",
+      txt: "Le tour d'une charge d'au moins 3 po, +1 Attaque.",
+      uses: [{ p: "combat", s: "me", n: "+1 Attaque si la charge a fait ≥ 3 po." }],
+    },
+    {
+      id: "horde", fr: "Horde", en: "Horde", cat: "special",
+      path: "special-rules/horde",
+      txt: "Le plafond de bonus de rang de l'unité (fixé par le type de troupe) augmente de 1.",
+      uses: [{ p: "combat", s: "both", n: "Plafond de bonus de rang +1." }],
+    },
+    {
+      id: "drilled", fr: "Discipliné", en: "Drilled", cat: "special",
+      path: "special-rules/drilled",
+      txt: "Sauf en fuite, l'unité peut refaire gratuitement ses rangs juste avant de bouger, et peut marcher à moins de 8 po d'un ennemi sans test de Commandement. S'étend aux personnages qui la rejoignent.",
+      uses: [{ p: "movement", s: "me", n: "Redresse gratuite avant mouvement ; marche près de l'ennemi sans test." }],
+    },
+    {
+      id: "ignores-cover", fr: "Ignore le couvert", en: "Ignores Cover", cat: "special",
+      path: "special-rules/ignores-cover",
+      txt: "Le tireur ignore les modificateurs pour toucher dus au couvert partiel ou total.",
+      uses: [{ p: "shooting", s: "me", n: "Ignorez les malus de couvert." }],
+    },
+    {
+      id: "magic-resistance", fr: "Résistance à la magie", en: "Magic Resistance (-X)", cat: "special",
+      aliases: ["Magic Resistance"],
+      path: "special-rules/magic-resistance",
+      txt: "Le jet d'incantation de tout sort ennemi (même lié) qui cible l'unité subit le modificateur indiqué. Non cumulatif : on prend la meilleure valeur.",
+      uses: [
+        { p: "strategy", s: "opp", n: "Malus au jet d'incantation des sorts adverses qui vous ciblent." },
+        { p: "shooting", s: "opp", n: "Malus au jet d'incantation des sorts adverses qui vous ciblent." },
+      ],
+    },
+
+    /* ---------- Magie ---------- */
+    {
+      id: "wizard", fr: "Magicien", en: "Wizard", cat: "magic",
+      aliases: ["Wizards", "magiciens", "Level of Wizardry", "niveau de magie"],
+      path: "magic/wizards",
+      txt: "Peut tenter autant de sorts par tour que son niveau de magie, chaque sort une seule fois. Engagé au corps à corps, il ne peut lancer que des sorts d'Assaut ou de portée « Self ». Moment d'incantation selon le type de sort : Enchantement/Hex (conjuration), Transport (mouvements restants), Projectile/Vortex (phase de tir), Assaut (combat).",
+      uses: [
+        { p: "strategy", s: "me", n: "Sous-phase Conjuration : sorts d'Enchantement et de Hex." },
+        { p: "movement", s: "me", n: "Mouvements restants : sorts de Transport (Conveyance)." },
+        { p: "shooting", s: "me", n: "Au choix du magicien : sorts de Projectile magique et de Vortex." },
+        { p: "combat", s: "me", n: "Quand le magicien se bat : sorts d'Assaut (Assailment)." },
+        { p: "combat", s: "opp", n: "Quand le magicien se bat : sorts d'Assaut (Assailment)." },
+        { p: "strategy", s: "opp", n: "Tentez de dissiper les Enchantements/Hexes adverses." },
+      ],
+    },
+    {
+      id: "enchantment", fr: "Enchantement", en: "Enchantment", cat: "magic",
+      path: "magic/enchantment",
+      txt: "Catégorie de sort lancée pendant la sous-phase Conjuration de votre phase de stratégie.",
+    },
+    {
+      id: "hex", fr: "Hex (malédiction)", en: "Hex", cat: "magic",
+      aliases: ["Hexes"],
+      path: "magic/hex",
+      txt: "Catégorie de sort lancée pendant la sous-phase Conjuration de votre phase de stratégie.",
+    },
+    {
+      id: "conveyance", fr: "Transport", en: "Conveyance", cat: "magic",
+      path: "magic/conveyance",
+      txt: "Catégorie de sort lançable à tout moment pendant la sous-phase des mouvements restants.",
+    },
+    {
+      id: "magic-missile", fr: "Projectile magique", en: "Magic Missile", cat: "magic",
+      aliases: ["Magic Missiles"],
+      path: "magic/magic-missiles",
+      txt: "Catégorie de sort lancée en phase de tir, quand le magicien est choisi.",
+    },
+    {
+      id: "vortex", fr: "Vortex magique", en: "Magical Vortex", cat: "magic",
+      path: "magic/magical-vortex",
+      txt: "Catégorie de sort lancée en phase de tir, quand le magicien est choisi.",
+    },
+    {
+      id: "assailment", fr: "Assaut", en: "Assailment", cat: "magic",
+      path: "magic/assailment",
+      txt: "Catégorie de sort lancée quand le magicien se bat pendant n'importe quelle phase de combat.",
+    },
+
+    /* ---------- Commandement ---------- */
+    {
+      id: "general", fr: "Général", en: "General", cat: "command",
+      aliases: ["The General"],
+      path: "characters/general-and-battle-standard",
+      txt: "Le Général de l'armée : voir la fiche pour sa Présence inspirante et la portée de commandement.",
+      uses: [{ p: "strategy", s: "me", n: "Pensez aux règles de commandement de votre Général (sous-phase Commandement)." }],
+    },
+    {
+      id: "battle-standard", fr: "Étendard de bataille", en: "Battle Standard", cat: "command",
+      aliases: ["Battle Standard Bearer", "BSB", "porte-étendard de bataille"],
+      path: "characters/the-battle-standard",
+      txt: "Apporte +1 point au résultat de combat de l'unité rejointe, en plus de l'étendard (voir la fiche pour « Hold Your Ground »).",
+      uses: [{ p: "combat", s: "both", n: "+1 point de résultat de combat." }],
+    },
+    {
+      id: "standard", fr: "Porte-étendard", en: "Standard Bearer", cat: "command",
+      aliases: ["Standard", "Standards", "étendard"],
+      path: "command-groups/standard-bearers",
+      txt: "Apporte +1 point au résultat de combat de l'unité.",
+      uses: [{ p: "combat", s: "both", n: "+1 point de résultat de combat." }],
+    },
+    {
+      id: "musician", fr: "Musicien", en: "Musician", cat: "command",
+      aliases: ["Musicians"],
+      path: "command-groups/musicians",
+      txt: "Membre du groupe de commandement (voir « Steadying Rhythm » et « Quick Time » sur la fiche).",
+    },
+    {
+      id: "champion", fr: "Champion", en: "Champion", cat: "command",
+      aliases: ["Champions"],
+      path: "command-groups/champions",
+      txt: "Membre du groupe de commandement ; peut lancer ou accepter des défis (voir la fiche).",
+    },
+
+    /* ---------- Types de troupes & équipement ---------- */
+    {
+      id: "infantry", fr: "Infanterie", en: "Infantry", cat: "troop",
+      path: "troop-types-in-detail/infantry",
+      txt: "Type de troupe : voir la fiche pour les sous-catégories (régulière, massée, lourde, monstrueuse…).",
+    },
+    {
+      id: "cavalry", fr: "Cavalerie", en: "Cavalry", cat: "troop",
+      path: "troop-types-in-detail/cavalry",
+      txt: "Type de troupe : voir la fiche (légère, lourde, monstrueuse, bêtes de guerre).",
+    },
+    {
+      id: "chariots", fr: "Chars", en: "Chariots", cat: "troop",
+      aliases: ["Chariot"],
+      path: "troop-types-in-detail/chariots",
+      txt: "Type de troupe : voir la fiche (légers, lourds, roues…).",
+    },
+    {
+      id: "monsters", fr: "Monstres", en: "Monsters", cat: "troop",
+      aliases: ["Monster", "Monstrous Creatures", "Behemoths"],
+      path: "troop-types-in-detail/monsters",
+      txt: "Type de troupe : voir la fiche (créatures monstrueuses, béhémoths, Thunderstomp…).",
+    },
+    {
+      id: "war-machine", fr: "Machine de guerre", en: "War Machine", cat: "troop",
+      aliases: ["War Machines", "artillerie"],
+      path: "troop-types-in-detail/war-machines",
+      txt: "Type de troupe : machine d'artillerie avec son équipage. Beaucoup ont Bouger ou tirer ; voir les fiches des machines (lance-pierres, canons, etc.).",
+      uses: [
+        { p: "shooting", s: "me", n: "Peut tirer (si elle n'a pas bougé quand elle a « Bouger ou tirer »)." },
+        { p: "movement", s: "opp", n: "Peut Tirer en position si elle est chargée." },
+      ],
+    },
+    {
+      id: "missile-weapon", fr: "Arme de tir", en: "Missile weapon", cat: "troop",
+      aliases: ["Missile Weapons", "arc", "arbalète", "arquebuse"],
+      path: "weapons-of-war/missile-weapons",
+      txt: "Arme à projectiles : permet de tirer en phase de tir si l'unité n'a ni chargé ni marché, n'est pas engagée et ne fuit pas. Peut aussi servir à Tirer en position quand l'unité est chargée.",
+      uses: [
+        { p: "shooting", s: "me", n: "Peut tirer (pas si chargé, marché, engagé ou en fuite)." },
+        { p: "movement", s: "opp", n: "Peut Tirer en position (-1 pour toucher) si elle est chargée." },
+      ],
+    },
+    {
+      id: "shield", fr: "Bouclier", en: "Shield", cat: "troop",
+      path: "weapons-of-war/shield",
+      txt: "Équipement : voir la fiche pour son effet sur l'armure et ses interactions.",
+    },
+    {
+      id: "great-weapon", fr: "Arme lourde", en: "Great Weapon", cat: "troop",
+      path: "weapons-of-war/great-weapon",
+      txt: "Arme de corps à corps : voir la fiche pour la Force, la perforation et les limites d'initiative.",
+    },
+    {
+      id: "lance", fr: "Lance de cavalerie", en: "Lance", cat: "troop",
+      path: "weapons-of-war/lance",
+      txt: "Arme de cavalerie qui joue surtout à la charge : voir la fiche pour les effets exacts.",
+    },
+  ];
+
+  // Chapitres officiels (liens) pour l'onglet Règles
+  const TOC = [
+    ["Vue d'ensemble de la partie", "overview-of-the-game"],
+    ["Principes généraux", "general-principles"],
+    ["Profils des modèles", "model-profiles"],
+    ["Former des unités", "forming-units"],
+    ["Retirer les pertes", "removing-casualties"],
+    ["Orientation & ligne de vue", "model-and-unit-facing"],
+    ["Types de troupes (aperçu)", "troop-types-at-a-glance"],
+    ["Magie", "magic"],
+    ["Séquence de tour", "the-turn-sequence"],
+    ["Phase de stratégie", "the-strategy-phase"],
+    ["Phase de mouvement", "the-movement-phase"],
+    ["Mouvement en détail", "movement-in-detail"],
+    ["Phase de tir", "the-shooting-phase"],
+    ["Phase de combat", "the-combat-phase"],
+    ["Psychologie de la guerre", "the-psychology-of-war"],
+    ["Règles spéciales", "special-rules"],
+    ["Formations inhabituelles", "unusual-formations"],
+    ["Types de troupes en détail", "troop-types-in-detail"],
+    ["Groupes de commandement", "command-groups"],
+    ["Personnages", "characters"],
+    ["Armes de guerre", "weapons-of-war"],
+    ["Machines de guerre", "war-machines"],
+    ["Terrain", "battlefield-terrain"],
+    ["Armées", "warhammer-armies"],
+    ["Batailles", "warhammer-battles"],
+    ["Campagnes", "campaign-battles"],
+    ["Batailles narratives", "narrative-battles"],
+    ["Lores de magie", "the-lores-of-magic"],
+    ["Objets magiques", "magic-items"],
+    ["Référence rapide", "quick-reference"],
+    ["Jeu égal (Matched Play)", "matched-play"],
+    ["Battle March", "battle-march"],
+    ["FAQ officielle", "faq"],
+    ["Errata & amendements", "errata"],
+    ["Index des armées", "sitemap/armies"],
+  ];
+
+  const ARMIES = [
+    "Beastmen Brayherds", "Chaos Dwarfs", "Daemons of Chaos", "Dark Elves", "Dwarfen Mountain Holds",
+    "Empire of Man", "Grand Cathay", "High Elf Realms", "Kingdom of Bretonnia", "Lizardmen", "Ogre Kingdoms",
+    "Orc & Goblin Tribes", "Realms of Men", "Regiments of Renown", "Skaven", "Tomb Kings of Khemri",
+    "Vampire Counts", "Warriors of Chaos", "Wood Elf Realms",
+  ];
+
+  const PHASES = [
+    {
+      id: "strategy", fr: "Phase de stratégie", en: "Strategy phase", path: "the-strategy-phase",
+      perUnit: false,
+      subs: [
+        { id: "start", fr: "Début de tour", en: "Start of Turn", path: "the-strategy-phase/start-of-turn",
+          me: "Effectuez les tests et actions « début de tour » exigés par vos règles (ex. Stupidité).",
+          opp: "Rien à faire de votre côté, sauf effet de règle qui s'applique aussi au tour adverse." },
+        { id: "command", fr: "Commandement", en: "Command", path: "the-strategy-phase/command",
+          me: "Utilisez les capacités de commandement de vos personnages et objets magiques.",
+          opp: "L'adversaire active ses capacités ; vous n'avez pas d'action." },
+        { id: "conjuration", fr: "Conjuration", en: "Conjuration", path: "the-strategy-phase/conjuration",
+          me: "Lancez vos sorts d'Enchantement et de Hex. Un magicien peut tenter autant de sorts que son niveau, chaque sort une seule fois.",
+          opp: "Vous pouvez tenter de dissiper les sorts adverses qui vous visent." },
+        { id: "rally", fr: "Rallier les fuyards", en: "Rally Fleeing Troops", path: "the-strategy-phase/rally-fleeing-units",
+          me: "Chaque unité en fuite fait un test de Commandement : réussi = ralliée (elle ne pourra pas charger ce tour), raté = elle continue de fuir.",
+          opp: "Rien à faire." },
+      ],
+    },
+    {
+      id: "movement", fr: "Phase de mouvement", en: "Movement phase", path: "the-movement-phase",
+      perUnit: false,
+      subs: [
+        { id: "charges", fr: "Déclarer charges & réactions", en: "Declare Charges & Charge Reactions", path: "the-movement-phase/declare-charges-and-charge-reactions",
+          me: "Déclarez vos charges une par une (unité chargeuse + cible). Interdit si l'unité est engagée, en fuite ou ralliée ce tour ; pas de charge impossible (hors portée maximale ou trajet bloqué). En Colonne de marche : déclaration possible, mouvement non.",
+          opp: "Pour chaque unité chargée, déclarez et résolvez une réaction : Tenir (Hold), Tirer en position (Stand & Shoot) ou Fuir (Flee)." },
+        { id: "chargemoves", fr: "Mouvements de charge", en: "Charge Moves", path: "the-movement-phase/charge-moves",
+          me: "Déplacez vos unités chargeuses dans l'ordre de votre choix (portée de charge à déterminer ; une charge qui n'atteint pas sa cible est ratée).",
+          opp: "Vos unités qui ont tenu ou tiré attendent le contact." },
+        { id: "compulsory", fr: "Mouvements obligatoires", en: "Compulsory Moves", path: "the-movement-phase/compulsory-moves",
+          me: "Faites les mouvements imposés : unités en fuite (fuite obligatoire) et autres mouvements obligatoires.",
+          opp: "Rien à faire." },
+        { id: "remaining", fr: "Mouvements restants", en: "Remaining Moves", path: "the-movement-phase/remaining-moves",
+          me: "Déplacez toutes les unités qui n'ont pas chargé ni fait de mouvement obligatoire. Les sorts de Transport (Conveyance) se lancent à tout moment ici.",
+          opp: "Vous pouvez tenter de dissiper les sorts de Transport adverses." },
+      ],
+    },
+    {
+      id: "shooting", fr: "Phase de tir", en: "Shooting phase", path: "the-shooting-phase",
+      perUnit: true,
+      note: "Contrairement aux deux premières phases, on déroule les 4 étapes en entier pour chaque unité, l'une après l'autre.",
+      subs: [
+        { id: "unit", fr: "Choisir l'unité & déclarer la cible", en: "Choose Unit & Declare Target", path: "the-shooting-phase/choose-unit-and-declare-target",
+          me: "Choisissez une unité qui peut tirer (arme à projectiles, machine de guerre, sort de Projectile/Vortex). Impossible si elle a chargé ou marché, est engagée ou en fuite. Vérifiez portée et ligne de vue, puis déclarez la cible.",
+          opp: "Vous ne tirez pas ; vous pouvez tenter de dissiper Projectiles/Vortex adverses." },
+        { id: "hit", fr: "Jet pour toucher", en: "Roll to Hit", path: "the-shooting-phase/roll-to-hit-shooting",
+          me: "Lancez pour toucher. Modificateurs cumulables : -1 bouger-tirer, -1 longue portée, -1 tir en position, -1 couvert partiel, -2 couvert total.",
+          opp: "Rien à faire pendant que l'adversaire lance ses dés." },
+        { id: "wound", fr: "Jet pour blesser & sauvegardes d'armure", en: "Roll to Wound & Make Armour Saves", path: "the-shooting-phase/roll-to-wound-and-make-armour-saves-shooting",
+          me: "Pour chaque touche, jet pour blesser ; l'adversaire peut ensuite tenter ses sauvegardes.",
+          opp: "Tentez vos sauvegardes d'armure (et parade / Régénération le cas échéant)." },
+        { id: "casualties", fr: "Retirer les pertes & tests de Panique", en: "Remove Casualties & Make Panic Tests", path: "the-shooting-phase/remove-casualties-and-make-panic-tests",
+          me: "Pas d'action : l'adversaire retire ses pertes et teste la Panique si nécessaire.",
+          opp: "Retirez les pertes (1 Blessure par blessure non sauvegardée) puis faites un test de Panique si une cause s'applique." },
+      ],
+    },
+    {
+      id: "combat", fr: "Phase de combat", en: "Combat phase", path: "the-combat-phase",
+      perUnit: true,
+      note: "Le joueur actif choisit un combat à la fois ; les 4 étapes sont déroulées en entier pour chaque combat. À la fin de la phase, le tour du joueur actif se termine.",
+      subs: [
+        { id: "fight", fr: "Choisir & résoudre le combat", en: "Choose & Fight Combat", path: "the-combat-phase/choose-and-fight-combat",
+          me: "Les modèles frappent par Initiative décroissante : attaques, blessures, retrait des pertes, puis les modèles à plus faible Initiative. Magiciens : sorts d'Assaut.",
+          opp: "Vos modèles frappent aussi quand leur Initiative est atteinte ; retirez vos pertes." },
+        { id: "result", fr: "Calculer le résultat de combat", en: "Calculate Combat Result", path: "the-combat-phase/calculate-combat-result",
+          me: "Comparez les points : blessures non sauvegardées, rangs, étendards, flanc/arrière, hauteur, Overkill, autres bonus. Le camp avec le plus de points gagne.",
+          opp: "Comptez vos propres points en même temps (bonus de rang, étendard, etc.)." },
+        { id: "break", fr: "Test de Rupture", en: "Break Test", path: "the-combat-phase/break-test",
+          me: "Si vous perdez, chaque unité perdante fait un test de Rupture (3 issues : fuite, Retraite en bon ordre, Cède du terrain).",
+          opp: "Si vous perdez, chaque unité perdante fait un test de Rupture (3 issues : fuite, Retraite en bon ordre, Cède du terrain)." },
+        { id: "follow", fr: "Suivi & poursuite", en: "Follow Up & Pursuit", path: "the-combat-phase/follow-up-and-pursuit",
+          me: "Les unités victorieuses choisissent : suivre un ennemi qui cède du terrain, poursuivre un ennemi qui recule ou fuit, ou se retenir.",
+          opp: "Si vous gagnez, vous choisissez : suivre, poursuivre ou vous retenir." },
+      ],
+    },
+  ];
+
+  window.TOW = { BASE, CATS, G, TOC, ARMIES, PHASES };
+})();
