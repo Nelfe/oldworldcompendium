@@ -662,9 +662,66 @@
   }
 
   let draft = null;
-  function openUnitForm(aid, uid_) {
+  /* Lecture d'une page d'unité copiée depuis tow.whfb.app (texte collé par l'utilisateur) */
+  function parseSheet(text) {
+    const lines = String(text || '').replace(/\r/g, '').split('\n').map((l) => l.trim());
+    const out = {}; const notes = [];
+    let name = '';
+    const tail = lines.filter((l) => /\|\s*Warhammer: The Old World\s*$/i.test(l)).pop();
+    if (tail) name = tail.replace(/\|\s*Warhammer: The Old World\s*$/i, '').trim();
+    if (!name) { const i = lines.findIndex((l) => /Online Rules Index/i.test(l)); name = (lines.slice(i + 1).find((l) => l) || '').trim(); }
+    if (name) out.name = name;
+    const hi = lines.findIndex((l) => /^M\s+WS\s+BS\s+S\s+T\s+W\s+I\s+A\s+Ld$/i.test(l));
+    if (hi >= 0) {
+      const rows = [];
+      for (let k = hi + 1; k < lines.length && lines[k] && !/^Unit Category/i.test(lines[k]); k++) {
+        const tk = lines[k].split(/\s+/);
+        if (tk.length < 10) break;
+        const vals = tk.slice(-9);
+        if (!vals.every((v) => /^[\d*+\-\/]+$/.test(v))) break;
+        const r = { n: tk.slice(0, -9).join(' ') };
+        PROF.forEach((p, j) => { r[p[0]] = vals[j]; });
+        rows.push(r);
+      }
+      if (rows.length) out.prof = rows.slice(0, 3);
+    }
+    const grab = (re) => { for (const l of lines) { const m = l.match(re); if (m) return m[1].trim(); } return ''; };
+    const block = (label) => {
+      const i = lines.findIndex((l) => l.toLowerCase().startsWith(label.toLowerCase() + ':'));
+      if (i < 0) return '';
+      let s = lines[i].slice(label.length + 1).trim();
+      for (let k = i + 1; k < lines.length && lines[k] && !/^(Optional Rules|Special Rules|Switch Index|Links|Equipment|Unit Size|Base Size|Troop Type|Unit Category)\b/i.test(lines[k]); k++) s += '\n' + lines[k];
+      return s;
+    };
+    const cat = grab(/^Unit Category:\s*(.+)/i), troop = grab(/^Troop Type:\s*(.+)/i);
+    const tt = (troop + ' ' + cat).toLowerCase();
+    out.troop = /chariot/.test(tt) ? 'chariots' : /monster/.test(tt) ? 'monsters' : /war machine/.test(tt) ? 'war-machine' : /cavalry/.test(tt) ? 'cavalry' : /infantry/.test(tt) ? 'infantry' : '';
+    if (/character/.test(tt)) out.cat = 'hero';
+    const us = grab(/^Unit Size:\s*(.+)/i).match(/(\d+)\s*(?:[-–]\s*(\d+))?/);
+    if (us) { out.sizeMin = +us[1]; out.sizeMax = us[2] ? +us[2] : 0; }
+    const eq = block('Equipment'); if (eq) out.equip = eq;
+    const src = lines.find((l) => /,\s*p\.\s*\d+/i.test(l)); if (src) notes.push('Source : ' + src);
+    const bs = grab(/^Base Size:\s*(.+)/i); if (bs) notes.push('Socle : ' + bs);
+    const split = (s) => s.split('\n').join(',').split(/,|(?<=[a-z0-9)])(?=[A-Z])/).map((x) => x.trim()).filter(Boolean);
+    const rules = []; const extra = [];
+    const byEn = {}; G.forEach((e) => { byEn[(e.en || '').replace(/\s*\(.*\)\s*$/, '').toLowerCase()] = e.id; byEn[e.fr.toLowerCase()] = e.id; });
+    const sort = (s) => split(s).forEach((r) => {
+      const m = r.match(/^(.*?)\s*(\(.*\)|\{.*\}|\d\+|X)?$/); const base = (m ? m[1] : r).toLowerCase();
+      const id = byEn[base];
+      if (id) { if (rules.indexOf(id) < 0) rules.push(id); if (m && m[2]) extra.push(GI[id].fr + ' ' + m[2]); } else extra.push(r);
+    });
+    sort(block('Special Rules'));
+    out.rules = rules;
+    out.extra = extra.length ? 'Autres règles / précisions : ' + extra.join(', ') : '';
+    const opt = split(block('Optional Rules')); if (opt.length) notes.push('Règles optionnelles : ' + opt.join(', '));
+    if (notes.length) out.notes = notes.join('\n');
+    return out;
+  }
+
+  function openUnitForm(aid, uid_, preset) {
     const ex = uid_ ? getUnit(uid_) : null;
     draft = ex ? clone(ex) : { id: uid(), army: aid, name: '', cat: 'core', troop: 'infantry', prof: [{}, {}, {}], save: '', sizeMin: 10, sizeMax: 0, base: 0, ppm: 0, opts: [], equip: '', rules: [], extra: '', wizard: 0, spells: [], notes: '', url: '' };
+    if (preset) Object.keys(preset).forEach((k) => { if (preset[k] !== '' && preset[k] != null && !(Array.isArray(preset[k]) && !preset[k].length)) draft[k] = preset[k]; });
     while (draft.prof.length < 3) draft.prof.push({});
     draft.rules = draft.rules || []; draft.spells = draft.spells || [];
     const catOpts = Object.keys(UCATS).map((c) => '<option value="' + c + '"' + (draft.cat === c ? ' selected' : '') + '>' + esc(UCATS[c]) + '</option>').join('');
@@ -674,6 +731,9 @@
         PROF.map((p) => '<td><input type="text" name="p' + i + '_' + p[0] + '" value="' + esc(r[p[0]] || '') + '" aria-label="' + p[1] + ' ligne ' + (i + 1) + '"></td>').join('') + '</tr>').join('') + '</tbody></table></div>';
     const armySpells = spellsOf(draft.army);
     openDlg('<form id="uform"><h2>' + (ex ? 'Modifier l\'unité' : 'Nouvelle unité') + '</h2>' +
+      '<details class="paste"' + (ex ? '' : ' open') + '><summary>Coller une fiche depuis tow.whfb.app</summary>' +
+      '<p class="muted">Ouvrez la page de l\'unité, sélectionnez tout (Ctrl+A), copiez, puis collez ici. Le profil, la taille, l\'équipement et les règles sont remplis ; il restera à saisir les points, la catégorie et les options.</p>' +
+      '<textarea id="u_paste" placeholder="Collez le texte de la page ici…"></textarea><button type="button" class="btn ghost" data-act="parseunit">Remplir la fiche</button></details>' +
       '<label for="u_name">Nom</label><input type="text" id="u_name" name="name" value="' + esc(draft.name) + '" required>' +
       '<div class="grid2"><div><label for="u_cat">Catégorie</label><select id="u_cat" name="cat">' + catOpts + '</select></div>' +
       '<div><label for="u_troop">Type de troupe</label><select id="u_troop" name="troop">' + troopOpts + '</select></div>' +
@@ -872,6 +932,15 @@
       case 'newcomp': openCompForm(aid, null); break;
       case 'editcomp': openCompForm(aid, id); break;
       case 'delcomp': ask('Supprimer cette composition ?', () => { const a = getArmy(aid); if (a) a.comps = a.comps.filter((c) => c.id !== id); save(); rerender(); }); break;
+      case 'parseunit': {
+        const ta = $('#u_paste'); if (!ta || !draft) break;
+        const p = parseSheet(ta.value);
+        if (!p.name && !p.prof) { toast('Texte non reconnu : collez toute la page de l\'unité.'); break; }
+        const exists = state.units.some((u) => u.id === draft.id);
+        openUnitForm(draft.army, exists ? draft.id : null, p);
+        toast('Fiche lue : ' + (p.name || 'unité') + '. Complétez les points.');
+        break;
+      }
       case 'newunit': openUnitForm(aid, null); break;
       case 'editunit': openUnitForm(null, id); break;
       case 'dupunitlib': { const u = getUnit(id); if (!u) break; const c = clone(u); c.id = uid(); c.name += ' (copie)'; state.units.push(c); save(); location.hash = '#unite-' + c.id; break; }
