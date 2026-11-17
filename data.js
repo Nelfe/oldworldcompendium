@@ -819,6 +819,25 @@
     "missile-weapon": "weapons-of-war", "shield": "weapons-of-war", "great-weapon": "weapons-of-war", "lance": "weapons-of-war",
     "los": "model-and-unit-facing", "casualty": "removing-casualties",
   };
+  /* Règles dont le résumé français n'est pas encore rédigé : mot-clé cliquable + lien vers le texte officiel. */
+  [
+    ["close-order", "Ordre serré", "Close Order"], ["resolute", "Résolu", "Resolute"], ["shieldwall", "Mur de boucliers", "Shieldwall"],
+    ["scouts", "Éclaireurs", "Scouts"], ["vanguard", "Avant-garde", "Vanguard"], ["ambushers", "Embuscade", "Ambushers"],
+    ["swiftstride", "Foulée rapide", "Swiftstride"], ["lightning-reflexes", "Réflexes foudroyants", "Lightning Reflexes"],
+    ["loner", "Solitaire", "Loner"], ["bodyguard", "Garde du corps", "Bodyguard"], ["evasive", "Évasif", "Evasive"],
+    ["distracting", "Distrayant", "Distracting"], ["fire-and-flee", "Tirer et fuir", "Fire & Flee"], ["light-troops", "Troupes légères", "Light Troops"],
+    ["open-order", "Ordre dispersé", "Open Order"], ["random-movement", "Mouvement aléatoire", "Random Movement"],
+    ["armour-piercing", "Perforant", "Armour Piercing"], ["lethal-strike", "Frappe mortelle", "Lethal Strike"],
+    ["fight-in-extra-rank", "Combat sur rang supplémentaire", "Fight in Extra Rank"], ["lance-formation", "Formation en lance", "Lance Formation"],
+    ["sniper", "Tireur d'élite", "Sniper"], ["devastating-charge", "Charge dévastatrice", "Devastating Charge"],
+    ["born-to-fight", "Né pour combattre", "Born to Fight"], ["predatory-fighter", "Combattant prédateur", "Predatory Fighter"],
+    ["scaly-skin", "Peau écailleuse", "Scaly Skin"], ["magical-attacks", "Attaques magiques", "Magical Attacks"],
+    ["flaming-attacks", "Attaques enflammées", "Flaming Attacks"],
+  ].forEach((s) => {
+    if (G.some((e) => e.id === s[0])) return;
+    G.push({ id: s[0], fr: s[1], en: s[2], cat: "special", stub: true, path: "special-rules/" + s[0],
+      txt: "Résumé français pas encore rédigé. Ouvrez le texte officiel (EN) ci-dessous, puis notez votre propre résumé dans « Ma note »." });
+  });
   G.forEach((e) => { e.ch = CH[e.id] || (e.cat === "special" || e.cat === "psycho" ? "special-rules" : "general-principles"); });
 
   window.TOW = { BASE, CATS, G, TOC, ARMIES, PHASES, CHAPTERS };

@@ -192,7 +192,7 @@
   const chapOf = (slug) => (T.CHAPTERS || []).find((c) => c.slug === slug);
   function rulesResults() {
     const q = ui.q.trim().toLowerCase();
-    const items = G.filter((e) => !q || [e.fr, e.en, e.txt].concat(e.aliases || []).join(' ').toLowerCase().includes(q)).sort(byFr);
+    const items = G.filter((e) => (q || !e.stub) && (!q || [e.fr, e.en, e.txt].concat(e.aliases || []).join(' ').toLowerCase().includes(q))).sort(byFr);
     if (q && !items.length) return '<p class="muted">Aucune règle trouvée.</p>';
     const by = {};
     items.forEach((e) => { (by[e.ch] = by[e.ch] || []).push(e); });
@@ -663,6 +663,15 @@
 
   let draft = null;
   /* Lecture d'une page d'unité copiée depuis tow.whfb.app (texte collé par l'utilisateur) */
+  function splitSheets(text) {
+    const out = []; let cur = [];
+    String(text || '').replace(/\r/g, '').split('\n').forEach((l) => {
+      cur.push(l);
+      if (/\|\s*Warhammer: The Old World\s*$/i.test(l.trim())) { out.push(cur.join('\n')); cur = []; }
+    });
+    if (cur.join('').trim()) out.push(cur.join('\n'));
+    return out.filter((s) => /Unit Category|Troop Type|\bLd\b/i.test(s));
+  }
   function parseSheet(text) {
     const lines = String(text || '').replace(/\r/g, '').split('\n').map((l) => l.trim());
     const out = {}; const notes = [];
@@ -732,7 +741,7 @@
     const armySpells = spellsOf(draft.army);
     openDlg('<form id="uform"><h2>' + (ex ? 'Modifier l\'unité' : 'Nouvelle unité') + '</h2>' +
       '<details class="paste"' + (ex ? '' : ' open') + '><summary>Coller une fiche depuis tow.whfb.app</summary>' +
-      '<p class="muted">Ouvrez la page de l\'unité, sélectionnez tout (Ctrl+A), copiez, puis collez ici. Le profil, la taille, l\'équipement et les règles sont remplis ; il restera à saisir les points, la catégorie et les options.</p>' +
+      '<p class="muted">Ouvrez la page de l\'unité, sélectionnez tout (Ctrl+A), copiez, puis collez ici. Vous pouvez coller <b>plusieurs pages à la suite</b> : chaque unité est créée d\'un coup. Le profil, la taille, l\'équipement et les règles sont remplis ; il restera à saisir les points, la catégorie et les options.</p>' +
       '<textarea id="u_paste" placeholder="Collez le texte de la page ici…"></textarea><button type="button" class="btn ghost" data-act="parseunit">Remplir la fiche</button></details>' +
       '<label for="u_name">Nom</label><input type="text" id="u_name" name="name" value="' + esc(draft.name) + '" required>' +
       '<div class="grid2"><div><label for="u_cat">Catégorie</label><select id="u_cat" name="cat">' + catOpts + '</select></div>' +
@@ -934,6 +943,11 @@
       case 'delcomp': ask('Supprimer cette composition ?', () => { const a = getArmy(aid); if (a) a.comps = a.comps.filter((c) => c.id !== id); save(); rerender(); }); break;
       case 'parseunit': {
         const ta = $('#u_paste'); if (!ta || !draft) break;
+        const segs = splitSheets(ta.value);
+        if (segs.length > 1) {
+          const made = segs.map(parseSheet).filter((p) => p.name && p.prof).map((p) => Object.assign({ id: uid(), army: draft.army, name: '', cat: 'core', troop: '', prof: [], save: '', sizeMin: 0, sizeMax: 0, base: 0, ppm: 0, opts: [], equip: '', rules: [], extra: '', wizard: 0, spells: [], notes: '', url: '' }, p));
+          if (made.length) { made.forEach((u) => state.units.push(u)); const aid2 = draft.army; draft = null; save(); closeDlg(); location.hash = '#armee-' + aid2; rerender(); toast(made.length + ' unités créées. Renseignez leurs points et leur catégorie.'); break; }
+        }
         const p = parseSheet(ta.value);
         if (!p.name && !p.prof) { toast('Texte non reconnu : collez toute la page de l\'unité.'); break; }
         const exists = state.units.some((u) => u.id === draft.id);
