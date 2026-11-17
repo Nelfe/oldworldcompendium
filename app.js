@@ -175,7 +175,7 @@
     else if (tab === 'about') { html = viewAbout(); tab = ''; }
     else { html = viewRules(); tab = 'regles'; }
     app.innerHTML = html;
-    $$('.tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
+    $$('.tabbar a').forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     if (!route.keepScroll) window.scrollTo(0, 0);
     route.keepScroll = false;
   }
