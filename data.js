@@ -758,5 +758,68 @@
     },
   ];
 
-  window.TOW = { BASE, CATS, G, TOC, ARMIES, PHASES };
+
+  /* Chapitres officiels, dans l'ordre du site (slug = adresse de la page sur tow.whfb.app). */
+  const CHAPTERS = [
+    { slug: "overview-of-the-game", fr: "Vue d'ensemble de la partie", en: "Overview of the Game" },
+    { slug: "general-principles", fr: "Principes généraux", en: "General Principles" },
+    { slug: "model-profiles", fr: "Profils des modèles", en: "Model Profiles" },
+    { slug: "forming-units", fr: "Former des unités", en: "Forming Units" },
+    { slug: "removing-casualties", fr: "Retirer les pertes", en: "Removing Casualties" },
+    { slug: "model-and-unit-facing", fr: "Orientation des modèles et des unités", en: "Model & Unit Facing" },
+    { slug: "troop-types-at-a-glance", fr: "Types de troupes en un coup d'œil", en: "Troop Types at a Glance" },
+    { slug: "magic", fr: "Magie", en: "Magic" },
+    { slug: "the-turn-sequence", fr: "Séquence de tour", en: "The Turn Sequence" },
+    { slug: "the-strategy-phase", fr: "Phase de stratégie", en: "The Strategy Phase" },
+    { slug: "the-movement-phase", fr: "Phase de mouvement", en: "The Movement Phase" },
+    { slug: "movement-in-detail", fr: "Mouvement en détail", en: "Movement in Detail" },
+    { slug: "the-shooting-phase", fr: "Phase de tir", en: "The Shooting Phase" },
+    { slug: "the-combat-phase", fr: "Phase de combat", en: "The Combat Phase" },
+    { slug: "the-psychology-of-war", fr: "Psychologie de la guerre", en: "The Psychology of War" },
+    { slug: "special-rules", fr: "Règles spéciales", en: "Special Rules" },
+    { slug: "unusual-formations", fr: "Formations inhabituelles", en: "Unusual Formations" },
+    { slug: "troop-types-in-detail", fr: "Types de troupes en détail", en: "Troop Types in Detail" },
+    { slug: "command-groups", fr: "Groupes de commandement", en: "Command Groups" },
+    { slug: "characters", fr: "Personnages", en: "Characters" },
+    { slug: "weapons-of-war", fr: "Armes de guerre", en: "Weapons of War" },
+    { slug: "war-machines", fr: "Machines de guerre", en: "War Machines" },
+    { slug: "battlefield-terrain", fr: "Terrain du champ de bataille", en: "Battlefield Terrain" },
+    { slug: "warhammer-armies", fr: "Armées de Warhammer", en: "Warhammer Armies" },
+    { slug: "warhammer-battles", fr: "Batailles de Warhammer", en: "Warhammer Battles" },
+    { slug: "campaign-battles", fr: "Batailles de campagne", en: "Campaign Battles" },
+    { slug: "narrative-battles", fr: "Batailles narratives", en: "Narrative Battles" },
+    { slug: "the-lores-of-magic", fr: "Lores de magie", en: "The Lores of Magic" },
+    { slug: "magic-items", fr: "Objets magiques", en: "Magic Items" },
+    { slug: "quick-reference", fr: "Référence rapide", en: "Quick Reference" },
+    { slug: "matched-play", fr: "Jeu égal (Matched Play)", en: "Matched Play" },
+    { slug: "battle-march", fr: "Battle March", en: "Battle March" },
+    { slug: "frequently-asked-questions", fr: "Questions fréquentes", en: "Frequently Asked Questions" },
+    { slug: "errata-and-amendments", fr: "Errata et amendements", en: "Errata & Amendments" },
+    { slug: "sitemap/armies", fr: "Index des armées", en: "Army Index" },
+  ];
+
+  /* Chapitre officiel de chaque fiche. */
+  const CH = {
+    "leadership-test": "model-profiles", "initiative": "model-profiles",
+    "panic": "the-psychology-of-war",
+    "break-test": "the-combat-phase", "combat-result": "the-combat-phase", "rank-bonus": "the-combat-phase",
+    "engaged": "the-combat-phase", "follow-up": "the-combat-phase", "pursuit": "the-combat-phase",
+    "fall-back": "movement-in-detail", "give-ground": "movement-in-detail", "flee": "movement-in-detail",
+    "march": "movement-in-detail", "wheel": "movement-in-detail", "reform": "movement-in-detail",
+    "rally": "the-strategy-phase",
+    "charge": "the-movement-phase", "charge-reaction": "the-movement-phase", "hold": "the-movement-phase", "stand-and-shoot": "the-movement-phase",
+    "to-hit-mods": "the-shooting-phase", "ward-save": "the-shooting-phase", "cover": "the-shooting-phase", "armour-save": "the-shooting-phase",
+    "challenge": "characters", "general": "characters", "battle-standard": "characters",
+    "unit-strength": "troop-types-at-a-glance",
+    "dispel": "magic", "wizard": "magic", "enchantment": "magic", "hex": "magic", "conveyance": "magic",
+    "magic-missile": "magic", "vortex": "magic", "assailment": "magic",
+    "standard": "command-groups", "musician": "command-groups", "champion": "command-groups",
+    "infantry": "troop-types-in-detail", "cavalry": "troop-types-in-detail", "chariots": "troop-types-in-detail",
+    "monsters": "troop-types-in-detail", "war-machine": "troop-types-in-detail",
+    "missile-weapon": "weapons-of-war", "shield": "weapons-of-war", "great-weapon": "weapons-of-war", "lance": "weapons-of-war",
+    "los": "model-and-unit-facing", "casualty": "removing-casualties",
+  };
+  G.forEach((e) => { e.ch = CH[e.id] || (e.cat === "special" || e.cat === "psycho" ? "special-rules" : "general-principles"); });
+
+  window.TOW = { BASE, CATS, G, TOC, ARMIES, PHASES, CHAPTERS };
 })();

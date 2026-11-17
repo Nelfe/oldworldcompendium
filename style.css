@@ -251,3 +251,18 @@ label.chip { display: inline-block; margin: 0; color: var(--text); }
   .tabbar a.on { background: var(--card); box-shadow: inset 0 -2px 0 var(--gold); color: var(--gold); }
   .tabbar a.on .ic { background: none; color: var(--gold); }
 }
+
+/* Règles : chapitres officiels */
+.chap{border:1px solid var(--line, rgba(128,128,128,.28));border-radius:12px;margin:8px 0;background:var(--card, transparent)}
+.chap>summary{list-style:none;cursor:pointer}
+.chap>summary::-webkit-details-marker{display:none}
+.chsum{display:flex;align-items:center;gap:12px;padding:11px 14px}
+.chnum{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:1px solid currentColor;opacity:.6}
+.chname{flex:1;min-width:0;font-weight:600}
+.chname small{display:block;font-weight:400;opacity:.6;font-size:12px}
+.chap.empty{opacity:.65}
+.chap.empty .chlink{text-decoration:none;font-size:16px;padding:4px 8px}
+.chap[open]>summary{border-bottom:1px solid var(--line, rgba(128,128,128,.28))}
+.chbody{padding:8px 12px 12px}
+.chbody .card{margin:8px 0}
+.chbody>.chlink{display:inline-block;margin-top:6px;font-size:13px}

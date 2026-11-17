@@ -184,24 +184,33 @@
 
   /* ------------------------------------------------------- vue : règles */
   function viewRules() {
-    const chips = ['<button class="chip' + (ui.cat === '' ? ' on' : '') + '" data-act="cat" data-cat="">Tout</button>']
-      .concat(Object.keys(T.CATS).map((c) => '<button class="chip' + (ui.cat === c ? ' on' : '') + '" data-act="cat" data-cat="' + c + '">' + esc(T.CATS[c]) + '</button>')).join('');
-    const toc = T.TOC.map((t) => '<li><a href="' + esc(officialUrl(t[1])) + '" target="_blank" rel="noopener">' + esc(t[0]) + ' ↗</a></li>').join('');
     return '<h1>Règles</h1>' +
-      '<p class="hint">Résumés rédigés en français. Les mots <a class="kw" href="#regle-charge" data-k="charge">soulignés</a> sont cliquables, et sur ordinateur un survol affiche un aperçu. Pour le déroulement d\'un tour, voir l\'onglet <a href="#phases">Phases</a>.</p>' +
+      '<p class="hint">Résumés rédigés en français, classés comme les chapitres du site officiel. Les mots <a class="kw" href="#regle-charge" data-k="charge">soulignés</a> sont cliquables, et sur ordinateur un survol affiche un aperçu. Pour le déroulement d\'un tour, voir l\'onglet <a href="#phases">Phases</a>.</p>' +
       '<input type="search" id="q" placeholder="Rechercher une règle, un mot-clé…" value="' + esc(ui.q) + '" data-bind="q" aria-label="Rechercher">' +
-      '<div class="chips" id="cats">' + chips + '</div>' +
-      '<div id="results">' + rulesResults() + '</div>' +
-      '<details><summary>Sommaire officiel (liens vers tow.whfb.app)</summary><ul class="toc">' + toc + '</ul></details>';
+      '<div id="results">' + rulesResults() + '</div>';
   }
+  const chapOf = (slug) => (T.CHAPTERS || []).find((c) => c.slug === slug);
   function rulesResults() {
     const q = ui.q.trim().toLowerCase();
-    const items = G.filter((e) => (!ui.cat || e.cat === ui.cat) &&
-      (!q || [e.fr, e.en, e.txt].concat(e.aliases || []).join(' ').toLowerCase().includes(q))).sort(byFr);
-    if (!items.length) return '<p class="muted">Aucune règle trouvée.</p>';
-    return items.map((e) =>
-      '<a class="card" href="#regle-' + esc(e.id) + '"><div class="row between"><h3>' + esc(e.fr) + '</h3><span class="badge">' + esc(T.CATS[e.cat] || '') + '</span></div>' +
-      '<div class="en">' + esc(e.en || '') + '</div><p class="muted">' + esc(shorten(e.txt, 140)) + '</p></a>').join('');
+    const items = G.filter((e) => !q || [e.fr, e.en, e.txt].concat(e.aliases || []).join(' ').toLowerCase().includes(q)).sort(byFr);
+    if (q && !items.length) return '<p class="muted">Aucune règle trouvée.</p>';
+    const by = {};
+    items.forEach((e) => { (by[e.ch] = by[e.ch] || []).push(e); });
+    return T.CHAPTERS.map((c, i) => {
+      const list = by[c.slug] || [];
+      const num = '<span class="chnum">' + (i + 1) + '</span>';
+      const link = '<a class="chlink" href="' + esc(officialUrl(c.slug)) + '" target="_blank" rel="noopener">Chapitre officiel (EN) ↗</a>';
+      if (!list.length) {
+        if (q) return '';
+        return '<div class="chap empty"><div class="chsum">' + num + '<span class="chname">' + esc(c.fr) + '<small>' + esc(c.en) + '</small></span>' +
+          '<a class="chlink" href="' + esc(officialUrl(c.slug)) + '" target="_blank" rel="noopener" aria-label="Ouvrir le chapitre officiel ' + esc(c.en) + '">↗</a></div></div>';
+      }
+      return '<details class="chap"' + (q ? ' open' : '') + '><summary class="chsum">' + num +
+        '<span class="chname">' + esc(c.fr) + '<small>' + esc(c.en) + '</small></span><span class="badge">' + list.length + '</span></summary>' +
+        '<div class="chbody">' + list.map((r) =>
+          '<a class="card" href="#regle-' + esc(r.id) + '"><h3>' + esc(r.fr) + '</h3><div class="en">' + esc(r.en || '') + '</div>' +
+          '<p class="muted">' + esc(shorten(r.txt, 140)) + '</p></a>').join('') + link + '</div></details>';
+    }).join('');
   }
 
   /* ------------------------------------------------------ vue : une fiche */
@@ -217,7 +226,7 @@
       return '<li><strong>' + esc(ph ? ph.fr : u.p) + '</strong> · ' + (u.s === 'both' ? 'les deux tours' : esc(SIDE[u.s])) + ' — ' + kw(u.n, id) + '</li>';
     }).join('');
     return '<p><a href="#regles">← Règles</a></p>' +
-      '<h1>' + esc(e.fr) + '</h1><div class="en">' + esc(e.en || '') + ' · <span class="badge">' + esc(T.CATS[e.cat] || '') + '</span></div>' +
+      '<h1>' + esc(e.fr) + '</h1><div class="en">' + esc(e.en || '') + ' · <span class="badge">' + esc((chapOf(e.ch) || {}).fr || '') + '</span></div>' +
       '<div class="card" style="margin-top:12px"><p>' + kw(e.txt, id) + '</p></div>' +
       (e.path ? '<p><a class="btn ghost" href="' + esc(officialUrl(e.path)) + '" target="_blank" rel="noopener">Texte officiel (EN) ↗</a></p>' : '') +
       (uses ? '<h2>Pendant la partie</h2><ul>' + uses + '</ul>' : '') +
