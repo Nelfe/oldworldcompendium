@@ -1049,14 +1049,14 @@
 
   document.addEventListener('submit', (ev) => {
     const f = ev.target;
-    const fd = new FormData(f);
-    if (f.id === 'aform') {
+    const fd = new FormData(f); const fid = f.getAttribute('id');
+    if (fid === 'aform') {
       ev.preventDefault();
       const name = String(fd.get('name') || '').trim(); if (!name) return;
       const id = String(fd.get('id') || '');
       if (id) { const a = getArmy(id); if (a) a.name = name; save(); closeDlg(); rerender(); }
       else { const a = { id: uid(), name, comps: [] }; state.armies.push(a); save(); closeDlg(); location.hash = '#armee-' + a.id; }
-    } else if (f.id === 'cform') {
+    } else if (fid === 'cform') {
       ev.preventDefault();
       const a = getArmy(String(fd.get('a'))); if (!a) return closeDlg();
       const limits = {};
@@ -1069,7 +1069,7 @@
       const name = String(fd.get('name') || '').trim() || 'Composition';
       if (c) { c.name = name; c.limits = limits; } else (a.comps = a.comps || []).push({ id: uid(), name, limits });
       save(); closeDlg(); rerender();
-    } else if (f.id === 'uform') {
+    } else if (fid === 'uform') {
       ev.preventDefault();
       if (!draft) return closeDlg();
       draft.name = String(fd.get('name') || '').trim() || 'Unité sans nom';
@@ -1086,7 +1086,7 @@
       const i = state.units.findIndex((u) => u.id === draft.id);
       if (i >= 0) state.units[i] = draft; else state.units.push(draft);
       const id = draft.id; draft = null; save(); closeDlg(); location.hash = '#unite-' + id; rerender();
-    } else if (f.id === 'sform') {
+    } else if (fid === 'sform') {
       ev.preventDefault();
       const id = String(fd.get('id') || '') || uid();
       const s = { id, army: String(fd.get('a')), name: String(fd.get('name') || '').trim(), lore: String(fd.get('lore') || '').trim(), type: fd.get('type'), cast: String(fd.get('cast') || '').trim(), range: String(fd.get('range') || '').trim(), txt: String(fd.get('txt') || ''), url: safeUrl(fd.get('url')) };
@@ -1094,7 +1094,7 @@
       const i = state.spells.findIndex((x) => x.id === id);
       if (i >= 0) state.spells[i] = s; else state.spells.push(s);
       save(); closeDlg(); location.hash = '#sort-' + id; rerender();
-    } else if (f.id === 'fform') {
+    } else if (fid === 'fform') {
       ev.preventDefault();
       const hash = curHash(); const l = hash[0] === 'liste' ? getList(decodeURIComponent(hash[1] || '')) : null;
       if (!l || !draft) return closeDlg();
