@@ -1129,6 +1129,13 @@
   dlg.addEventListener('click', (ev) => { if (ev.target === dlg) closeDlg(); });
 
   /* -------------------------------------------------------------- démarrage */
+  /* Données préchargées (facultatif) : fournies par un fichier seed.js privé, absent de la version publique. */
+  (function () {
+    const seed = window.TOW_SEED; if (!seed || !seed.id) return;
+    state.seeds = state.seeds || [];
+    if (state.seeds.indexOf(seed.id) >= 0) return;
+    try { mergeBundle(seed.bundle); state.seeds.push(seed.id); save(); } catch (e) { /* ignoré */ }
+  })();
   rebuild();
   route();
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
